@@ -1,10 +1,13 @@
 #include <rte_eal.h>
 #include <rte_ethdev.h>
 #include <rte_mbuf.h>
-#include <rte_ip.h>
 #include <rte_ether.h>
+#include <rte_ip.h>
 #include <rte_byteorder.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
@@ -25,33 +28,36 @@ static void signal_handler(int signum) {
 }
 
 static struct rte_mbuf *build_xtp_packet(struct rte_mempool *mbuf_pool) {
-    const unsigned total_len = sizeof(struct ether_hdr) + sizeof(struct ipv4_hdr) + sizeof(struct xtp_hdr) + 8;
+    const unsigned total_len = sizeof(struct rte_ether_hdr) +
+                                sizeof(struct rte_ipv4_hdr) +
+                                sizeof(struct xtp_hdr) + 8;
+
     struct rte_mbuf *mbuf = rte_pktmbuf_alloc(mbuf_pool);
     if (!mbuf) return NULL;
 
     mbuf->data_len = total_len;
     mbuf->pkt_len = total_len;
 
-    struct ether_hdr *eth = rte_pktmbuf_mtod(mbuf, struct ether_hdr *);
-    struct ipv4_hdr *ip = (struct ipv4_hdr *)(eth + 1);
+    struct rte_ether_hdr *eth = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+    struct rte_ipv4_hdr *ip = (struct rte_ipv4_hdr *)(eth + 1);
     struct xtp_hdr *xtp = (struct xtp_hdr *)(ip + 1);
     uint8_t *payload = (uint8_t *)(xtp + 1);
 
-    // Fill Ethernet header
-    memset(eth->d_addr.addr_bytes, 0xff, 6); // Broadcast
-    memset(eth->s_addr.addr_bytes, 0x11, 6); // Dummy MAC
-    eth->ether_type = rte_cpu_to_be_16(ETHER_TYPE_IPv4);
+    // Ethernet header
+    memset(eth->dst_addr.addr_bytes, 0xff, RTE_ETHER_ADDR_LEN); // Broadcast
+    memset(eth->src_addr.addr_bytes, 0x11, RTE_ETHER_ADDR_LEN); // Dummy MAC
+    eth->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4);
 
-    // Fill IPv4 header
-    memset(ip, 0, sizeof(struct ipv4_hdr));
+    // IP header
+    memset(ip, 0, sizeof(struct rte_ipv4_hdr));
     ip->version_ihl = 0x45;
-    ip->total_length = rte_cpu_to_be_16(sizeof(struct ipv4_hdr) + sizeof(struct xtp_hdr) + 8);
+    ip->total_length = rte_cpu_to_be_16(sizeof(struct rte_ipv4_hdr) + sizeof(struct xtp_hdr) + 8);
     ip->next_proto_id = XTP_PROTO_ID;
-    ip->src_addr = rte_cpu_to_be_32(IPv4(192, 168, 0, 1));
-    ip->dst_addr = rte_cpu_to_be_32(IPv4(192, 168, 0, 2));
+    ip->src_addr = rte_cpu_to_be_32((192 << 24) | (168 << 16) | (0 << 8) | 1); // 192.168.0.1
+    ip->dst_addr = rte_cpu_to_be_32((192 << 24) | (168 << 16) | (0 << 8) | 2); // 192.168.0.2
     ip->hdr_checksum = rte_ipv4_cksum(ip);
 
-    // XTP Header
+    // XTP header
     xtp->ver_flags = 0x01;
     xtp->msg_type = 0x10;
     xtp->msg_id = rte_cpu_to_be_16(rand() & 0xffff);
@@ -64,7 +70,7 @@ static struct rte_mbuf *build_xtp_packet(struct rte_mempool *mbuf_pool) {
 
 int main(int argc, char *argv[]) {
     struct rte_mempool *mbuf_pool;
-    struct rte_eth_conf port_conf = { .rxmode = { .max_rx_pkt_len = RTE_ETHER_MAX_LEN } };
+    struct rte_eth_conf port_conf = { 0 };
 
     signal(SIGINT, signal_handler);
 
@@ -101,7 +107,6 @@ int main(int argc, char *argv[]) {
         uint16_t sent = rte_eth_tx_burst(TX_PORT, 0, tx_bufs, BURST_SIZE);
         packets += sent;
 
-        // Free unsent mbufs
         for (int i = sent; i < BURST_SIZE; i++) {
             if (tx_bufs[i]) rte_pktmbuf_free(tx_bufs[i]);
         }
