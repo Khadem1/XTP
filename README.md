@@ -49,8 +49,6 @@ struct xtp_hdr {
 
  **Total size: 8 bytes**
 
----
-
 ### Comparison With UDP/TCP/QUIC
 
 | Protocol | Header Size   | Connection | Reliability | Parsing Cost | Use Case                     |
@@ -60,7 +58,6 @@ struct xtp_hdr {
 | QUIC     | \~20–50 bytes | Stateful   | Yes         | High         | Modern, encrypted transport  |
 | **XTP**  | 8 bytes       | Stateless  | Optional    | Very low     | HPC, AI inference, telemetry |
 
----
 
 ### Step 3: Integrate with DPDK
 
@@ -87,7 +84,6 @@ struct rte_flow_item_flex {
 
 Create a flow rule matching your `xtp_hdr` using flex item starting at the offset from L3.
 
----
 
 ### Benefits of XTP
 
@@ -96,4 +92,30 @@ Create a flow rule matching your `xtp_hdr` using flex item starting at the offse
 * Tailorable per use-case (e.g., AI pipelines, NVMe over UDP, sensor data)
 * NIC offload possible with `rte_flow` and `rte_flow_item_flex`
 
+### Summary of Your Benchmarks
+
+####  Run:
+
+```bash
+sudo ./benchmark           # For XTP
+sudo ./benchmark udp       # For UDP
+sudo ./benchmark tcp       # For TCP
+```
+
+| Protocol | Initial PPS (warm-up) | Peak PPS      | Consistency             |
+| -------- | --------------------- | ------------- | ----------------------- |
+| **XTP**  | 1.29M                 | \~6.59M       | Stable, tight variance  |
+| **UDP**  | 0.33M                 | \~6.44M       | Slightly lower than XTP |
+| **TCP**  | 2.09M                 | \~6.59–6.59M+ | Slightly higher ceiling |
+
+1. **XTP matches TCP in performance**: Despite being a minimal custom protocol with no OS-level stack support, XTP achieves TCP-level throughput — this validates that:
+
+   * XTP packet header is lightweight enough.
+   * The NIC offloads or path in DPDK isn't a bottleneck.
+   * The DPDK TX path is fully saturated.
+
+2. **UDP is slightly lower (\~100–200k PPS)**:
+
+   * Possibly due to the fixed header length in `rte_udp_hdr` plus alignment and checksum quirks.
+   * Could also relate to NIC offloads not being fully optimized.
 
