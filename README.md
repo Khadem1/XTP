@@ -1,6 +1,6 @@
 # XTP / NeuNIC Transport Protocol
 XTP — eXtreme Transport Protocol
-Creating a **new custom protocol header using DPDK's flexible items** (flex item in flow API or within custom packet parsing) can be a powerful way to offload parsing or filtering on a SmartNIC or high-performance NIC. Your goal is to define a **custom transport-layer-like header** that is **more efficient** than TCP/UDP/QUIC, possibly for specific use cases like ultra-low-latency, real-time telemetry, or internal data center traffic.
+Creating a **new custom protocol header using DPDK's flexible items** (flex item in flow API or within custom packet parsing) can be a powerful way to offload parsing or filtering on a SmartNIC or high-performance NIC. The goal is to define a **custom transport-layer-like header** that is **more efficient** than TCP/UDP/QUIC, possibly for specific use cases like ultra-low-latency, real-time telemetry, or internal data center traffic.
 
 ###  Step 1: Define the Design Goals
 
