@@ -1,10 +1,10 @@
-# XTP
+# XTP / NeuNIC Transport Protocol
 XTP — eXtreme Transport Protocol
 Creating a **new custom protocol header using DPDK's flexible items** (flex item in flow API or within custom packet parsing) can be a powerful way to offload parsing or filtering on a SmartNIC or high-performance NIC. Your goal is to define a **custom transport-layer-like header** that is **more efficient** than TCP/UDP/QUIC, possibly for specific use cases like ultra-low-latency, real-time telemetry, or internal data center traffic.
 
 ###  Step 1: Define the Design Goals
 
-To be *more efficient* than UDP/TCP/QUIC, your custom header should aim for:
+To be *more efficient* than UDP/TCP/QUIC, the custom header aim for:
 
 | Feature                | Value/Strategy                                      |
 | ---------------------- | --------------------------------------------------- |
@@ -16,7 +16,7 @@ To be *more efficient* than UDP/TCP/QUIC, your custom header should aim for:
 | **Application-aware**  | Support for app-level QoS, message ID, etc.         |
 
 
-### Step 2: Define the Custom Header (let’s call it `XTP` — eXtreme Transport Protocol)
+### Step 2: Define the Custom Header (call it`XTP` — eXtreme Transport Protocol/ NeuNIC Transport Protocol)
 
 ```c
 struct xtp_hdr {
