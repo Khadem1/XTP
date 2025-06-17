@@ -115,4 +115,17 @@ sudo ./benchmark tcp       # For TCP
 
    * Possibly due to the fixed header length in `rte_udp_hdr` plus alignment and checksum quirks.
    * Could also relate to NIC offloads not being fully optimized.
+#### Advance Benchmarking
+##### Summary of Benchmark Results
 
+| Protocol | Average PPS    | Notes                                                  |
+| -------- | ---------------| ------------------------------------------------------ |
+| **XTP**  | ~6,090,000	    | Consistently high, matches hardware offload            |
+| **UDP**  |  ~5,748,000	| Slightly lower, possibly due to shorter header         |
+| **TCP**  | ~5,634,000     | Higher complexity, larger header, slower startup burst |
+
+
+
+##### Observations:
+    XTP is performing on par with TCP, often slightly better than UDP after the warmup period.
+    This suggests your XTP header is lean, avoids kernel stack, and DPDK fast path is well-utilized.
